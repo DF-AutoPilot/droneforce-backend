@@ -14,6 +14,7 @@ FIREBASE_STORAGE_BUCKET = os.environ.get('FIREBASE_STORAGE_BUCKET', 'droneforce-
 OPERATOR_PUBKEY = os.environ.get('OPERATOR_PUBKEY', 'default_operator_pubkey')
 
 # Arweave Configuration
+ARWEAVE_ENABLED = os.environ.get('ARWEAVE_ENABLED', 'False').lower() in ('true', '1', 't')
 ARWEAVE_HOST = os.environ.get('ARWEAVE_HOST', 'arweave.net')
 ARWEAVE_PORT = int(os.environ.get('ARWEAVE_PORT', '443'))
 ARWEAVE_PROTOCOL = os.environ.get('ARWEAVE_PROTOCOL', 'https')

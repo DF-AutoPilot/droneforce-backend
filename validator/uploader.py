@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import arweave
 from arweave.arweave_lib import Wallet
-from arweave.transaction import Transaction
+from arweave import Transaction  # Transaction is directly in the arweave module
 
 from config import settings
 

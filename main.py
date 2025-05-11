@@ -7,7 +7,16 @@ from typing import Dict, Any
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
 from google.cloud import storage as google_storage
-from google.cloud.functions import Context
+from google.cloud import functions_v1
+from typing import Optional
+
+# Define Context class for compatibility
+class Context:
+    def __init__(self, event_id: str = None, timestamp: str = None, event_type: str = None, resource: dict = None):
+        self.event_id = event_id
+        self.timestamp = timestamp
+        self.event_type = event_type
+        self.resource = resource
 import functions_framework
 
 from validator.parser import LogParser
@@ -15,10 +24,11 @@ from validator.validator import FlightValidator
 from validator.uploader import ArweaveUploader
 from validator.blockchain import SolanaClient
 
-# Initialize Firebase
-cred = credentials.ApplicationDefault()
+# Initialize Firebase with service account
+service_account_path = os.path.join(os.path.dirname(__file__), 'config/keys/firebase-service-account.json')
+cred = credentials.Certificate(service_account_path)
 firebase_admin.initialize_app(cred, {
-    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
+    'storageBucket': os.environ.get('DF_STORAGE_BUCKET', 'df-autopilot.appspot.com')
 })
 db = firestore.client()
 
@@ -97,10 +107,17 @@ async def process_drone_log(cloud_event: Dict[str, Any], context: Context) -> No
         verification_report_hash = hashlib.sha256(verification_data).hexdigest()
         print(f"Verification report hash: {verification_report_hash}")
         
-        # Upload log to Arweave
-        uploader = ArweaveUploader()
-        arweave_tx_id = await uploader.upload_log(log_file_path)
-        print(f"Log uploaded to Arweave with transaction ID: {arweave_tx_id}")
+        # Upload log to Arweave (if configured)
+        arweave_tx_id = None
+        if settings.ARWEAVE_ENABLED and settings.ARWEAVE_WALLET_FILE:
+            try:
+                uploader = ArweaveUploader()
+                arweave_tx_id = await uploader.upload_log(log_file_path)
+                print(f"Log uploaded to Arweave with transaction ID: {arweave_tx_id}")
+            except Exception as e:
+                print(f"Arweave upload failed (continuing anyway): {str(e)}")
+        else:
+            print("Arweave upload skipped - not configured")
         
         # Call Solana contract
         solana_client = SolanaClient()
